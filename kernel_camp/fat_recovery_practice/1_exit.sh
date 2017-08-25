@@ -1,0 +1,2 @@
+umount ./disk
+df -Th
