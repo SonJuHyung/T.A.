@@ -56,6 +56,7 @@ typedef struct thread_arg{
     int *data_set;
     int start;
     int end;
+    void (*fp)(int);
 }thread_arg;
 
 /* 

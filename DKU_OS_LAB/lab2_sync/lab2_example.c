@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <pthread.h>
 #include <asm/unistd.h>
+#include <signal.h>
 
 #include "lab2_sync_types.h"
 
@@ -66,28 +67,55 @@ static void print_result(int num_threads, int num_iterations, int is_sync)
 
 }
 
+void a(int signo){
+    printf("thread 1");
+}
+
+void b(int signo){
+    printf("thread 2");
+}
+
+void c(int signo){
+    printf("thread 3");
+}
+
+void d(int signo){
+    printf("thread 4");
+}
+
+void (*alm_func[4])(int);
+
 static void* add_shared_variable(void *arg){
     thread_arg *th_arg = (thread_arg*)arg;
     int num_iterations = th_arg->num_iterations;
     int is_sync = th_arg->is_sync;
     int i=0;
 
-    if(is_sync){
-        for(i=0; i < num_iterations ;i++){
-            /* Acquiring lock for critical section */
-            pthread_mutex_lock(&mutex);
-            
-            /* Critical Section */
-            shared_variable++;
-            
-            pthread_mutex_unlock(&mutex);
-            /* Release lock for critical section */
-        }    
-    }else{
-        for(i=0; i < num_iterations ;i++){
-            shared_variable++;
-        }    
+    printf("waiting %d seconds ...\n",num_iterations);
+
+    signal(SIGALRM, (th_arg->fp));
+
+    alarm(num_iterations);
+
+    while(1){
+//        pause();
     }
+//    if(is_sync){
+//        for(i=0; i < num_iterations ;i++){
+//            /* Acquiring lock for critical section */
+//            pthread_mutex_lock(&mutex);
+//            
+//            /* Critical Section */
+//            shared_variable++;
+//            
+//            pthread_mutex_unlock(&mutex);
+//            /* Release lock for critical section */
+//        }    
+//    }else{
+//        for(i=0; i < num_iterations ;i++){
+//            shared_variable++;
+//        }    
+//    }
 }
 
 int mutex_test(int num_threads, int num_iterations,int is_sync)
@@ -97,13 +125,21 @@ int mutex_test(int num_threads, int num_iterations,int is_sync)
     long double result= 0.0;
     thread_arg arg;
     arg.is_sync = is_sync;
-    arg.num_iterations = num_iterations;
+//    arg.num_iterations = num_iterations;
 
+    alm_func[0] = a;
+    alm_func[1] = b;
+    alm_func[2] = c;
+    alm_func[3] = d;
+
+   
     pthreads = (pthread_t*)malloc(sizeof(pthread_t)*num_threads);
     memset(pthreads, 0x0, sizeof(pthread_t) * num_threads);
 
     for(i = 0 ; i < num_threads; i++){ 
         /* Create thread  */
+        arg.num_iterations=i+1;
+        arg.fp=alm_func[i];
         res = pthread_create(&pthreads[i], NULL, add_shared_variable,(void*)&arg);
         if(res == LAB2_ERROR){
             printf(" Error: _perf_metadata - pthread_create error \n");
